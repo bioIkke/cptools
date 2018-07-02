@@ -1,0 +1,9 @@
+scg_cds/muscle_ccsA.fa
+scg_cds/muscle_matK.fa
+scg_cds/muscle_ndhF.fa
+scg_cds/muscle_ndhI.fa
+scg_cds/muscle_petD.fa
+scg_cds/muscle_rpoA.fa
+scg_cds/muscle_rpoC2.fa
+scg_cds/muscle_rps15.fa
+scg_cds/muscle_rps2.fa

@@ -1,0 +1,31 @@
+    -1     38     26
+
+
+ 1
+
+     1      1    -3.2709148078   0.037971674398       1.4429  AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) 
+     2      1    -9.3780367758   0.000084561052       0.0032  AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) CAA (Q) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) AAA (K) 
+     3      1    -8.7525465972   0.000158058301       0.0060  AAA (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) AAG (K) 
+     4      3    -2.8050832647   0.060501733301       2.2991  AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) AAT (N) 
+     5      1    -3.7461683132   0.023608031355       0.8971  ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) ACA (T) 
+     6      2    -3.2563703021   0.038527989488       1.4641  ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) ACT (T) 
+     7      1   -14.8299550793   0.000000362604       0.0000  AGT (S) AGT (S) AGT (S) AGT (S) AGT (S) ACT (T) AGT (S) ACT (T) AGT (S) AGT (S) AGT (S) AGT (S) AGT (S) AGT (S) AGT (S) AGT (S) 
+     8      1    -4.7548143394   0.008610143109       0.3272  ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) ATC (I) 
+     9      1    -8.1557442723   0.000287081540       0.0109  ATC (I) ATT (I) ATT (I) ATC (I) ATC (I) ATT (I) ATT (I) ATT (I) ATC (I) ATT (I) ATC (I) ATT (I) ATC (I) ATT (I) ATC (I) ATC (I) 
+    10      1    -4.0124895298   0.018088307756       0.6874  ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) ATG (M) 
+    11      3    -2.5935777025   0.074752120254       2.8406  ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) ATT (I) 
+    12      1   -12.8172408484   0.000002713582       0.0001  CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) AAA (K) AAA (K) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) 
+    13      1    -3.9374314733   0.019498232213       0.7409  CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) CAA (Q) 
+    14      1    -3.8887766585   0.020470372983       0.7779  CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) CCT (P) 
+    15      1    -3.7478801777   0.023567652175       0.8956  CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) CTA (L) 
+    16      2    -4.8496930936   0.007830780497       0.2976  CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) CTG (L) 
+    17      2    -3.2305632167   0.039535225616       1.5023  CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) CTT (L) 
+    18      2    -3.7155647983   0.024341689088       0.9250  GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) GAA (E) 
+    19      1    -3.2556451923   0.038555936645       1.4651  GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) GAT (D) 
+    20      2    -4.1541724341   0.015698777528       0.5966  GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) GCA (A) 
+    21      2    -3.6757351184   0.025330777557       0.9626  GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) GCT (A) 
+    22      2    -3.5273212897   0.029383520479       1.1166  GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) GTA (V) 
+    23      1    -3.0255707736   0.048530113655       1.8441  GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) GTT (V) 
+    24      1    -4.1429689663   0.015875647204       0.6033  TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) TAT (Y) 
+    25      1    -5.8411279888   0.002905563334       0.1104  TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) TTC (F) 
+    26      2    -3.8218926451   0.021886338599       0.8317  TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) TTT (F) 

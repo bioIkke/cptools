@@ -1,0 +1,81 @@
+
+@Author: Bioikke
+@Email: yiqiden@gmail.com
+
+Before test
+
+1. Install Bioperl and other modules
+
+2. Ensure some tools in your $PATH
+
+3. This program only test in UNIX-like OS
+
+4. More info, inside perl snippets
+
+
+########    Run step by step    #######
+
+
+p3 OverView
+
+cptools 
+
+Usage:	cptools parse Genbank File parse
+    	 stat The count of Species' genes
+    	 filt Yield fasta of genes
+    	 grab Grab seqs from genes in species
+    	 merge Merge many many gene fasta
+    	 evo   Branch-site model analysis
+
+
+p3 Cp genomes(Choloplastid genome #Genbank# Files) parse:
+
+cptools parse -tag gene -type gb -in acc.txt -out dir
+
+# Parse acceccions online, and output was stored in dir
+
+p3 cptools stat -in gene.list > gene.csv
+
+# count gene in gene.list
+
+p3 cptools.pl filt -in gene.csv  > scg_gene.txt
+
+# yield single copy gene name
+
+p3 cptools grab -g scg_gene.txt -fa fasta -d outdir
+
+# Extract single copy gene(cptools filt output)
+# You could edit this file to grab your own genes 
+
+p3 cptools.pl merge -in merge_gene.list > merge_gene.fa
+
+# Codens sometimes could be used to calculate kaks, which related 
+# to environmental adaption. so, should check some attributions in
+# aligned and trimed seqs, like length, 3 times and so on.
+
+
+# Pretreat scg_cds files
+
+# Search some problem cds
+
+# Align sequences
+cd scg_cds
+for i in $(ls *fa);do ~/bioapp/muscle3.8.31_i86darwin64 -in $i -out muscle_$i ;done
+# Checker_3.pl
+perl util/check_3.pl muscle_cds.txt |awk '{print $1}'|sort|uniq > prob_muscle_cds.txt
+# Omit sequences  
+cd ..
+mkdir -p scg_cds/omit
+for i in $(cat prob_muscle_cds.txt);do mv $i ./scg_cds/omit/;done
+# No gaps
+for i in $(ls muscle_*);do trimAl -in $i -out trim_$i -nogaps;done
+# Omit 3' terminal codon
+for i in $(trim_*);do perl ../util/omit_terminal.pl $i;done
+
+#branch-site  model run
+cptools.pl evo -m run -c ../example.ctl -d ../ready_cds/ -t ../16gene_topu.tree 
+
+#branch-site model gather result
+cptools.pl evo -m gather -in branch_site
+
+

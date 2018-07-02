@@ -1,0 +1,572 @@
+#!/usr/bin/env perl
+
+use warnings;
+use strict;
+
+use IO::File;
+use File::Copy;
+use File::Slurp;
+use File::Spec::Functions qw/catfile splitpath/;
+use Cwd qw/abs_path/;
+use Bio::SeqIO;
+use Bio::Seq;
+
+use FindBin;
+use Carp;
+use Data::Dumper;
+
+
+use Bio::DB::Query::GenBank; 
+# retrive from genbank
+# more details: <https://metacpan.org/pod/Bio::DB::Query::GenBank>
+use Bio::DB::GenBank; #get Genbank from Accession
+# more details: <https://metacpan.org/pod/Bio::DB::GenBank>
+
+# A very useful tools:EFetch
+# And it's recommended that ACC rather than gi
+
+# Author: Ikke
+# Email : yiqiden@gmail.com
+
+BEGIN {
+	$ENV{BRANCH_SITE} = "$FindBin::RealBin";
+}
+
+##Ensure PAML in ENVIRONMENT PATH
+##Jump to evo snippet
+
+croak argv_err() unless scalar @ARGV > 0;
+
+my @command = qw/parse stat filt merge evo grab/;
+my ($index,$arg_ref) =argv_parse(@ARGV);
+
+croak argv_err() unless(grep {$index eq $_ }@command);
+
+###########Cp sequence grab##################
+#
+if($index eq 'parse'){
+	croak argv_err($index) 
+		unless defined $arg_ref->{'tag'}
+		&& defined $arg_ref->{'in'}
+		&& defined $arg_ref->{'out'}
+		&& defined $arg_ref->{'type'};
+	my ($tag,$in,$out,$type) = @$arg_ref{('tag','in','out','type')};
+	my @acc = read_file($in);
+	my $seqobj;
+	$out = abs_path($out);
+	mkdir($out,0755) if(! -d $out);
+	foreach my $acc(@acc){
+		$acc =~ s/\r?\n//;
+		if($type eq 'acc'){
+			$seqobj = gb_acc($acc);
+		}elsif($type eq 'gb'){
+			$seqobj = gb_parse($acc);
+		}else{croak argv_err($index)}
+		write_fl($acc,$tag,$seqobj,$out);
+	}
+}
+
+############The number of gene in species fasta######
+if($index eq 'stat'){
+	croak argv_err($index) unless(defined $arg_ref->{'in'});
+	my $in = $arg_ref->{'in'};
+	my @files = read_file($in);
+	@files = map {s/\r?\n//r} @files;
+	my @uniq;
+	my @all;
+	my %hash;
+	foreach my $file(@files){
+		my $tmp   = read_file($file);
+		my @genes = $tmp =~ m/>(\S+)/g;
+		push @all,@genes;
+		$hash{$file} = [@genes];
+	}
+	my %tmp;
+	@uniq = sort grep { ++$tmp{$_} < 2;} @all;
+	print join(",","species",@uniq),"\n";
+	foreach my $key(keys %hash){
+		my @genes = @{$hash{$key}};
+		my $i =0;
+		foreach my $uq(@uniq){
+			my $count = grep {$_ eq $uq} @genes;
+			if($i == 0){
+				$key =~ s/^\S+\/|\.\S+$//g;
+				$key =~ s/(_gene|_CDS)$//;
+				print $key,",",$count;
+			}elsif($i == $#uniq){
+				print ",",$count,"\n";
+			}else{print ",",$count}
+			$i++;
+		}
+	}
+
+}
+
+###########################SCG#############################
+if($index eq 'filt'){
+	croak argv_err($index) unless(defined $arg_ref->{'in'});
+	my $in = $arg_ref->{'in'};
+	my @lines = read_file($in);
+	@lines = map {s/\r?\n//r} @lines;
+	foreach my $i(0 .. $#lines){
+		$lines[$i] = [split /,/,$lines[$i]];
+	}
+	foreach my $count(1 .. $#{$lines[0]}){
+		foreach my $i(1 .. $#lines){
+			if($lines[$i][$count] != 1){last()}
+			if($i == $#lines && $lines[$#lines][$count] == 1){
+				print $lines[0][$count],"\n";
+			}
+		}
+	}
+}
+
+##########################gene GRAB#######################
+if($index eq 'grab'){
+	croak argv_err($index) 
+		unless defined $arg_ref->{'g'}
+		&& defined $arg_ref->{'fa'}
+		&& defined $arg_ref->{'d'};
+	my ($gene,$fa,$dir) = @$arg_ref{('g','fa','d')};
+	my @fas   = read_file($fa);
+	@fas      = map {s/\r?\n//r} @fas;
+	my @genes = read_file($gene);
+	@genes    = map {s/\r?\n//r} @genes;
+	$dir      = abs_path($dir);
+	my %gene_fh;
+	mkdir($dir,0755) if(! -d $dir);
+	foreach my $gene(@genes){
+		my $name = $gene . ".fa";
+		open $gene_fh{$gene},">>",catfile($dir,$name) 
+			|| "can't create such file:\n";
+	}
+	foreach my $fas(@fas){
+		open my $fh,$fas || die "No $fas in dir\n";
+		my $name;
+		while(<$fh>){
+			s/\r?\n//;
+			if(/>(\S+)/){
+				$name = $1;
+				if(grep {$name eq $_ } @genes){
+					$fas =~ s/_(gene|CDS)\.fa//;
+					$fas =~ s/^\S+\///;
+					print {$gene_fh{$name}} ">$fas\n";
+				}
+			}elsif(defined $gene_fh{$name}){
+				print {$gene_fh{$name}} "$_\n";
+			}else{next()}
+		}
+	}
+}
+
+#######################  Merge  ##############################
+
+if($index eq 'merge'){
+	croak argv_err($index) unless(defined $arg_ref->{'in'});
+	my %fasta;
+	my $in = $arg_ref->{'in'};
+	my @file  = read_file($in);
+	@file     = map {s/\r?\n//r} @file;
+	foreach my $file(@file){
+		$fasta{$file} = fasta_parser($file);
+	}
+	foreach my $key(keys %{$fasta{$file[0]}}){
+		print ">$key\n";
+		foreach my $i(0 .. $#file){
+			print $fasta{$file[$i]}{$key};
+			print "\n" if($i == $#file);
+		}
+	}
+}
+
+
+#######################  evo  ##############################
+
+if($index eq 'evo'){
+	my $mode = defined $arg_ref->{'m'} 
+		? $arg_ref->{'m'}
+		: croak argv_err($index);
+	my($codeml,$chi2) = palm_check();
+	if($mode eq 'run'){
+		croak argv_err($index)
+			unless defined $arg_ref->{'t'} 
+			&& defined $arg_ref->{'c'}
+			&& defined $arg_ref->{'d'};
+		# print Dumper $arg_ref;
+		my ($ctl,$tree,$dir) = @$arg_ref{qw/c t d/};
+		$ctl      = abs_path($ctl);
+		$tree     = abs_path($tree);
+		$dir      = abs_path($dir);
+		my $configs = ctl_parse($ctl);
+		my @files;
+		opendir my $dir_fh,$dir || die "Can't open $dir:$!\n";
+		foreach (readdir $dir_fh){
+			next if(/^\./);
+			my $file = catfile($dir,$_);
+			next unless(-f $file);
+			push @files,$file;
+		}
+		closedir $dir_fh;
+		foreach my $file(@files){
+			my $tmp = (splitpath($file))[-1];
+			$tmp =~ s/\.\S+$//;
+			foreach my $i(0,1){
+				mkdir $tmp . "_$i",0755 ;
+				chdir $tmp . "_$i" or die "can't creat $tmp\n";
+				ctl_write($tmp . ".ctl",$file,$configs,$i,$tree);
+				system("$codeml " . $tmp . ".ctl");
+				chdir "..";
+			}
+		}
+	}elsif($mode eq 'gather'){
+		my $dir = defined $arg_ref->{'in'}
+			? $arg_ref->{'in'} 
+			: croak argv_err($index);
+		unless(-d $dir){croak "can't find $dir"}
+		$dir = abs_path($dir);
+		my %hash;
+		# Format in mlc file
+		# lnL(ntime:  5  np:  9):   -614.110596      +0.000000
+		# w:   0.00000  1.00000  1.00000
+		#_0 lnL(ntime:  8  np: 12):   -643.613908      +0.000000
+		#_1 foreground w     0.12614  1.00000  1.00000  1.00000
+		#_1 lnL(ntime:  8  np: 13):   -643.613908      +0.000000
+		#_1 background w     0.12614  1.00000  1.00000  1.00000
+		opendir my $dir_fh,$dir || die "can't open this Dir:$!";
+		foreach (readdir $dir_fh){
+			next if(/^\./); #ignore hidden file
+			my $file = catfile($dir,$_);
+			next unless(-d $file); 
+			my ($tag) = m/_([01])$/;
+			my $mlc   = catfile($dir,$_,"mlc");
+			s/_[01]$//;
+			$hash{$_}{$tag} = mlc_parse($mlc);
+		}
+		foreach my $gene (keys %hash){
+			if(scalar keys %{$hash{$gene}} != 2){
+				carp "$gene not calculate twice";
+				next;
+			}
+			my @null     = @{$hash{$gene}{"0"}};
+			my @alter    = @{$hash{$gene}{"1"}};
+			my $df       = abs($alter[1] - $null[1]);
+			my $lnl_dif  = 2 * abs($null[0] - $alter[0]);
+			my $chi2_out = `$chi2 $df $lnl_dif`;
+			my ($pvalue) = $chi2_out =~ m/df.*=.*=\s+([0-9.e\-+]+)/m;
+			print join("\t",$gene,@null[0..2],@alter,$pvalue),"\n";
+		}
+	}
+}
+#########################Subroutine########################
+
+###################
+##	Genbank Parser
+###################
+sub write_fl{
+
+	# Output Fasta file
+	# _gene.fa, _cds.fa,_rRna.fa,_tRna.fa ...
+
+	my $acc = shift;
+	my $tag = shift;
+	my $seq = shift;
+	my $dir = shift;
+	my $string = seq_str($seq,$tag);
+	my $out_file = $acc . "_" . $tag . ".fa";
+	$out_file = catfile($dir,$out_file);
+	my $out = IO::File->new($out_file,"w");
+	print $out $string;
+	undef $out;# close Filehand
+
+}
+
+sub gb_parse{
+	my $filename  = shift;
+	my $seqio_obj = Bio::SeqIO->new(-file   => $filename,
+                          -format => 'GenBank');
+	return $seqio_obj;
+}
+
+sub gb_acc{
+	my $acc = shift;
+	my $gb = Bio::DB::GenBank->new();
+	
+	# Many method in Bio::DB::GenBank:
+	#	get_Seq_by_id, get_Seq_by_acc, get_Seq_by_gi, get_Seq_by_version
+	#	get_Stream_by_query, get_Stream_by_id, get_Stream_by_acc...
+	# This only use Accession ID to fetch genbank file
+
+	# ERROR < WebDBSeqI Request Error: 500>
+	# install Mozilla::CA to trust Certificate Authorities 
+	# sudo cpan Mozilla::CA
+	
+	my $seqio_obj = $gb->get_Stream_by_acc($acc);
+	return $seqio_obj;
+}
+
+sub seq_str{
+	##
+	## Input Bio::Seq obj And Output [target] seq 
+	##
+	my ($seqobj, $tag, $filter) = @_;
+	my $string;
+	unless($seqobj){croak "No seqobj input"};
+	unless($tag){croak "No tag input"};
+	my $seq_object = $seqobj->next_seq();
+	for my $featobj ($seq_object->get_SeqFeatures){
+		if($featobj->primary_tag eq $tag){
+			my @tags   = $featobj->get_all_tags();
+			my $gene;
+			if(grep {$_ eq "gene"} @tags){
+				($gene) = $featobj->get_tag_values("gene");
+			}elsif(grep {$_ eq "locus_tag"} @tags){
+				($gene) = $featobj->get_tag_values("locus_tag")
+			}else{next()}
+			# be careful some seqobj don't have "gene" tags;
+			# another is "locus_tag";
+			if($filter && grep {$_ eq $gene} @$filter){
+				$string .= ">$gene\n";
+				$string .= $featobj->spliced_seq->seq . "\n";
+			}else{
+				$string .= ">$gene\n";
+				$string .= $featobj->spliced_seq->seq . "\n";
+			}
+		}
+	}
+	return $string;
+}
+
+
+###########################
+#Branch-site run
+###########################
+sub palm_check{
+	my $codeml = `which codeml 2 > /dev/null`;
+	my $chi2   = `which chi2   2 > /dev/null`;
+	my $sys    = sub{
+		my $uname = `uname -s`;
+		chomp $uname;
+		return 'linux' if $uname =~ m/\ALinux/i;
+		return 'mac'   if $uname =~ m/\ADarwin/;
+		return 'unkown';
+	};
+	my $os     = $sys->(); 
+	chomp($codeml);
+	chomp($chi2);
+
+
+	unless($codeml =~ m/\w+/ && $chi2 =~ m/\w+/){
+		if($os eq 'mac'){
+			$codeml	= catfile($ENV{BRANCH_SITE},'util','mac_codeml');
+			$chi2   = catfile($ENV{BRANCH_SITE},'util','mac_chi2');
+		}elsif($os eq 'linux'){
+			$codeml	= catfile($ENV{BRANCH_SITE},'util','linux_codeml');
+			$chi2   = catfile($ENV{BRANCH_SITE},'util','linux_chi2');
+		}else{
+			$codeml	= catfile($ENV{BRANCH_SITE},'util','other_codeml');
+			$chi2   = catfile($ENV{BRANCH_SITE},'util','other_chi2');
+		}
+	}
+	if(! -e $codeml){
+		croak "Can't Find codeml program\n";
+	}
+	if(! -e $chi2){
+		croak "Can't Find chi2 program\n";
+	}
+	return($codeml,$chi2);
+}
+
+
+sub ctl_write{
+	my $out      = IO::File->new(+shift,"w");
+	my $seqfile  = shift;
+	my $configs  = shift;
+	my $hypot    = shift;
+	my $treefile = shift;
+	
+	# NULL hypothesis:		 fix_omega = 1   omega = 1
+	# Alternative hypothesis:fix_omega = 0   omega = 1.5
+
+	print $out "seqfile" . " = " . $seqfile . "\n";
+	print $out "treefile" . " = " . $treefile . "\n";
+	foreach my $key(sort keys %$configs){
+		if($hypot == 0 && $key eq "fix_omega"){
+			print $out "fix_omega = 1\n";
+		}elsif($hypot == 0 && $key eq "omega"){
+			print $out "omega = 1\n";
+		}elsif($hypot == 1 && $key eq "fix_omega"){
+			print $out "fix_omega = 0\n";
+		}elsif($hypot == 1 && $key eq "omega"){
+			print $out "omega = 1.5\n";
+		}else{
+			print $out $key . " = " .
+				$configs->{$key},"\n";
+		}
+		
+	}
+	$out->close();
+}
+sub ctl_parse{
+	my $file = shift;
+	my %config;
+	
+	open my $fh,$file or die "No codon.ctl file:$!";
+	while(my $line = <$fh>){
+		next if($line =~ m/^\s+\*/); #ctl comment 
+		$line =~ m/(\w+)\s*=\s*([0-9a-zA-Z.\-]+)\s*\*?\s*(\S*)/;
+		my ($config,$value) = ($1,$2);
+		next unless($config or $value);
+		$config{$config} = $value;
+	}
+	return \%config;
+}
+################################################
+##MLC out parser
+################################################
+sub mlc_parse{
+	my $fl  = shift();
+	my ($BEB,$NEB) = qw/BEB: NEB:/;
+	my ($BEB_flag,$NEB_flag )= qw/0 0/;
+	my ($np,$lnl,$omega);
+	open my $fh,$fl || die "NO such file:$!\n";
+	while(my $line = <$fh>){
+		if($line =~ /lnL\(ntime:\s+\d+\s+np:\s+(\d+)\):\s+([0-9\-+.]+)\s+[0-9\-+.]+/){
+			($np,$lnl) = ($1,$2);
+		}elsif($line =~ /foreground\s+w\s+[0-9.]+\s+[0-9.]+\s+[0-9.]+\s+([0-9.]+)/){
+			$omega = $1;
+		}elsif($line =~ /Bayes\s+Empirical\s+Bayes\s+\(BEB\)\s+analysis/){
+			$BEB_flag++;
+			$NEB_flag = 0;
+		}elsif($line =~ /Positive\s+sites\s+for\s+foreground\s+lineages/){
+			$BEB_flag++;
+			$NEB_flag++;
+		}elsif($line =~ /Naive\s+Empirical\s+Bayes\s+\(NEB\)\s+analysis/){
+			$NEB_flag++;
+			$BEB_flag = 0;
+		}elsif($line =~ /^\s+(\w+)\s+(\w+)\s+([0-9.]+)/){
+			my ($pos, $aa, $sign) = ($1, $2, $3);
+			if($BEB_flag > 0){
+				$BEB .= join(",",$pos,$aa,$sign) . ";";
+			}
+			if($NEB_flag > 0){
+				$NEB .= join(",",$pos,$aa,$sign) . ";";
+			}
+		}else{
+			$BEB_flag = 0;
+			$NEB_flag = 0;
+		}
+	}
+	close $fh;
+	# print join("\t",$lnl,$np,$omega,$BEB,$NEB),"\n";
+	return [$lnl,$np,$omega,$BEB,$NEB];
+}
+###########################
+#fasta parser
+###########################
+sub wrapper{
+	my $line = shift();
+	my $word = shift() // 60;
+	my $pos  = 0;
+	while(1){
+		$pos += $word;
+		last unless $pos < length $line;
+		substr $line, $pos, 0, "\n";
+		$pos  = (rindex $line,"\n");
+		$pos++;
+	} 
+	return $line;
+}
+sub fasta_parser{
+        my %fasta;
+        my $name;
+        my $fl = shift;
+        open my $fh,"<","$fl" or die "can't open:$!";
+        while(<$fh>){
+                s/\r?\n//;
+                if(/^>(\S+)/){
+                        $name = $1;
+                }elsif($name){
+                        $fasta{$name} .= $_;
+                }
+        }
+	close $fh;
+        return \%fasta;
+}
+###########################
+#ARGV parse
+###########################
+sub argv_parse{
+	my %tag;
+	my @args = @_;
+	my $tag  = shift(@args);
+	croak argv_err($tag) unless($#args % 2);
+	while(@args){
+		my $tmp = shift(@args);
+		if($tmp =~ /-([0-9a-zA-Z]+)/){
+			$tag{$1} = shift(@args)
+		}
+	}
+	return($tag,\%tag);
+}
+#####################
+#argvs parse Error
+#####################
+sub argv_err{
+	my %err = (
+	parse => 
+	"Usage: cptools parse -tag [gene,CDS,..] -type [acc,gb] -in [accessions,Genbank file] -out\nOptions:
+	-tag\tTag NCBI annotation tag
+	-type\tType acc:Accessions gb:Local GenBank File
+	-in\tInput accessions or GenBank Files path file
+	-out\tOutput directory\n",
+	stat  => 
+	"Usage:\tcptools stat -in [INPUT]\nOptions:
+	-in\tFile path, fasta files contain species sequenes\n",
+	filt =>
+	"Usage:\tcptools filt -in [stat] [-eq,[-gt]]]\nOptions:
+	-in\tStat File,csv file type
+	\tEqual 1 ## 1 means single copy gene
+	\tWarning: this version No greater than [-gt]\n",
+	grab =>
+	"Usage:\tcptools grab -g genelist -fa fasta -d outdir\nOptions:
+	-g\tGene list
+	-fa\tFasta file list
+	-d\tOutput directory\n",
+	merge =>
+	"Usage:\tcptools  merge -in Fasta\nOptions:
+	-in\tFasta files\n",
+	evo   =>
+	"Usage:cptools evo -m [gather,run] [-c ctl -t tree -d seqfile -in ]
+	Options:
+	-m\tMode run:run branch-site mode  gather:collect result
+	-c\tctl contain branch-site configurations
+	-t\tTree file,phylogenetic tree(may point own branch)
+	-d\tDirectory 
+	
+	Run mode:
+	#cptools evo -m run -c example.ctl -t 16_topu.tree -d ready_cds
+	
+	Gather mode:
+	#cptools evo -m gather -in out
+	\n",
+	init  =>
+	"Usage:\tcptools parse Genbank File parse
+    \t stat The count of Species' genes
+    \t filt Yield fasta of genes
+    \t grab Grab seqs from genes in species
+    \t merge Merge many many gene fasta
+    \t evo   Branch-site model analysis\n",
+	);
+	my $tag = shift // "None";
+	##Switch imitation(Perl no build-in switch)
+	SWITCH:{
+		$tag eq 'parse' && return $err{$tag};
+		$tag eq 'stat'  && return $err{$tag};
+		$tag eq 'filt'  && return $err{$tag};
+		$tag eq 'grab'  && return $err{$tag};
+		$tag eq 'merge' && return $err{$tag};
+		$tag eq 'evo'   && return $err{$tag};
+		$tag eq 'init'  && return $err{$tag};
+		return $err{'init'}
+	}
+}
